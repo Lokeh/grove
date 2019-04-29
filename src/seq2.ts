@@ -537,14 +537,30 @@ function reduce<X, Y>(f: (acc: Y, x: X) => Y, init: Y, s: ISeqable<X>): Y {
   return acc;
 }
 
-function into<X>(coll: IConjable<X> | ISeq<X>, s: ISeq<X>): IConjable<X> | ISeq<X> {
-    return reduce((acc, x) => conj(acc, x), coll, s);
+function into<X>(
+  coll: IConjable<X> | ISeq<X>,
+  s: ISeq<X>
+): IConjable<X> | ISeq<X> {
+  return reduce((acc, x) => conj(acc, x), coll, s);
 }
 
 function map<X, Y>(f: (x: X) => Y, s: ISeqable<X>): ISeq<Y> {
-    let xs = seq(s);
-    if (xs === null) return null;
-    return new LazySeq(null, () => cons(f(xs.first()), map(f, xs.rest())));
+  let xs = seq(s);
+  if (xs === null) return null;
+  return new LazySeq(null, () => cons(f(xs.first()), map(f, xs.rest())));
+}
+
+function filter<X>(pred: (x: X) => boolean, s: ISeqable<X>): ISeq<X> {
+  let xs = seq(s);
+  if (xs === null) return null;
+  return new LazySeq(null, () => {
+    let hd = xs.first();
+    let tl = xs.rest();
+    if (pred(hd)) {
+      return cons(hd, filter(pred, tl));
+    }
+    return filter(pred, tl);
+  });
 }
 
 //
@@ -559,7 +575,7 @@ console.log("rest array", rest([1, 2, 3]), count(rest([1, 2, 3])));
 console.log("rest arrSeq", rest(arrSeq), count(rest(arrSeq)));
 console.log("first rest arrSeq", first(rest(arrSeq)));
 console.log("reduce rest arrSeq", reduce((x, y) => x + y, 0, rest(arrSeq)));
-console.log("into rest arrSeq", into([], rest(arrSeq)))
+console.log("into rest arrSeq", into([], rest(arrSeq)));
 const mapArrSeq = map(x => x + 1, arrSeq);
 console.log("map arrSeq", mapArrSeq);
 console.log("seq map arrSeq", seq(mapArrSeq));
