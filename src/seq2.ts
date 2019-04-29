@@ -18,7 +18,7 @@ interface ICollection<X> {
 }
 
 interface ISeq<X> extends ICollection<X> {
-    first(): X | EMPTY
+    first(): X;
     rest(): ISeq<X>
     next(): ISeq<X> | null
     cons(x: X): ISeq<X>
@@ -98,7 +98,7 @@ class EmptyList<X> implements IPersistentList<X> {
     constructor(meta?: any) {
         if (meta) this._meta = meta;
     }
-    first(): EMPTY { return EMPTY_VALUE }
+    first(): X { return null }
     rest() { return this }
     next(): null { return null }
     cons(x: X) { return new PersistentList(x) }
@@ -202,7 +202,7 @@ class Cons<X> implements ISeq<X>, IMeta {
         if (meta) this._meta = meta;
     }
 
-    first(): X | EMPTY {
+    first(): X {
         return this._first;
     }
 
@@ -238,7 +238,8 @@ class Cons<X> implements ISeq<X>, IMeta {
     }
 
     isEmpty() {
-        return this.first() === EMPTY_VALUE;
+        // TODO: verify this
+        return this.first() === null && this._rest === null;
     }
 
     empty(): ISeq<X> {
@@ -381,11 +382,11 @@ class ArraySeq<X> implements ISeq<X>, IMeta {
     }
 
     first() {
-        return this.array[0];
+        return this.array[this.pointer];
     }
 
     next() {
-        if (this.isEmpty){
+        if (this.isEmpty()){
             return null;
         }
         return new ArraySeq(this.array, this.pointer + 1, this._meta);
@@ -410,7 +411,7 @@ class ArraySeq<X> implements ISeq<X>, IMeta {
     }
 
     count() {
-        return this.array.length;
+        return this.array.length - this.pointer;
     }
 
     equiv(s: ISeq<X>) {
@@ -441,8 +442,74 @@ class ArraySeq<X> implements ISeq<X>, IMeta {
 // Extend native types
 //
 
-// interface Array<X> extends IConjable<X>, ISeqable<X> {};
+interface Array<T> extends IConjable<T>, ISeqable<T> {};
 
-// Array.prototype.[conj_method] = 
+Array.prototype[conj_method] = function<X> (x: X) {
+    const newArray = [...this];
+    newArray.push(x);
+    return newArray;
+}
 
-// Array.prototype[toSeq_method]
+Array.prototype[toSeq_method] = function () {
+    return new ArraySeq(this, 0);
+}
+
+
+
+
+
+
+//
+// Library
+//
+
+
+
+function first<X>(s: ISeqable<X>) {
+    if (s) {
+        return seq(s).first();
+    }
+    return null;
+}
+
+function ffirst<X>(s: ISeqable<ISeqable<X>>) {
+    // trust me it's not empty
+    return first(first(s) as ISeqable<X>);
+}
+
+function rest<X>(s: ISeqable<X>) {
+    return seq(s).rest();
+}
+
+function count<X>(s: ISeqable<X>) {
+    return seq(s).count();
+}
+
+function empty<X>(s: ISeq<X>) {
+    return s.empty();
+}
+
+function reduce<X, Y>(f: (acc: Y, x: X) => Y, init: Y, s: ISeqable<X>): Y {
+    let acc = init;
+
+    for (let xs = seq(s), hd = xs.first(); xs !== null; xs = xs.next(), hd = xs.first()) {
+        acc = f(acc, hd);
+    }
+
+    return acc;
+}
+
+
+
+//
+// Try it out
+//
+
+const arrSeq = seq([1, 2, 3]);
+console.log("arrSeq", arrSeq, count(arrSeq));
+console.log("first array", first([1, 2, 3]))
+console.log("first arrSeq", first(arrSeq))
+console.log("rest array", rest([1, 2, 3]), count(rest([1, 2, 3])))
+console.log("rest arrSeq", rest(arrSeq), count(rest(arrSeq)));
+console.log("first rest arrSeq", first(rest(arrSeq)));
+
