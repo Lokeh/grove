@@ -6,6 +6,10 @@ const conj_method = Symbol("conj_method");
 
 const toSeq_method = Symbol("toSeq_method");
 
+interface IConjable<X> {
+    [conj_method](x: X): IConjable<X>
+}
+
 interface ICollection<X> {
     cons(x: X): ICollection<X>
     empty(): ICollection<X>
@@ -25,7 +29,9 @@ interface ISeqable<X> {
     [toSeq_method](): ISeq<X>
 }
 
-interface ISeq<X> extends ISeqable<X> {}
+interface ICollection<X> extends ISeqable<X> {}
+
+// interface ISeq<X> extends ISeqable<X> {}
 
 const withMeta_method = Symbol("withMeta_method");
 
@@ -54,6 +60,10 @@ function isSeq<X>(o: any): o is ISeq<X> {
     return o && o.first && o.rest && o.cons && o.isEmpty;
 }
 
+function isConjable<X>(o: any): o is IConjable<X> {
+    return o && o[conj_method];
+}
+
 function seq<X>(o: ISeqable<X> | null) {
     if (o) return o[toSeq_method]();
     return null;
@@ -64,6 +74,13 @@ function cons<X>(x: X, coll: ISeqable<X> | null): ISeq<X> {
         return new PersistentList(x);
     }
     return seq(coll).cons(x);
+}
+
+function conj<X>(coll: IConjable<X> | ICollection<X>, x: X) {
+    if (isConjable(coll)) {
+        return coll[conj_method](x);
+    }
+    return cons(x, coll);
 }
 
 
@@ -95,8 +112,6 @@ class EmptyList<X> implements IPersistentList<X> {
     [ withMeta_method ](meta: any) { return new EmptyList(meta) }
     [toSeq_method]() { return this }
 }
-
-const EMPTY_LIST = new EmptyList();
 
 class PersistentList<X> implements IPersistentList<X>, IMeta {
     private _first: X
@@ -326,7 +341,7 @@ class LazySeq<X> implements ISeq<X>, IMeta {
     }
 
     empty() {
-        return new EmptyList();
+        return new EmptyList() as ISeq<X>;
     }
 
     count() {
@@ -346,3 +361,88 @@ class LazySeq<X> implements ISeq<X>, IMeta {
         return o[toSeq_method]() === null;
     }
 }
+
+
+
+
+//
+// ArraySeq
+//
+
+
+class ArraySeq<X> implements ISeq<X>, IMeta {
+    private array: Array<X>;
+    private pointer: number;
+    private _meta: any;
+    constructor(array: Array<X>, pointer: number, meta?: any) {
+        this.array = array;
+        this.pointer = pointer;
+        if (meta) this._meta = meta;
+    }
+
+    first() {
+        return this.array[0];
+    }
+
+    next() {
+        if (this.isEmpty){
+            return null;
+        }
+        return new ArraySeq(this.array, this.pointer + 1, this._meta);
+    }
+
+    rest() {
+        let n = this.next();
+        if (n === null) new EmptyList() as ISeq<X>;
+        return n;
+    }
+
+    cons(x: X): ISeq<X> {
+        return new Cons(x, this);
+    }
+
+    isEmpty() {
+        return this.pointer === this.array.length - 1;
+    }
+
+    empty() {
+        return new ArraySeq(this.array, this.array.length - 1, this.meta());
+    }
+
+    count() {
+        return this.array.length;
+    }
+
+    equiv(s: ISeq<X>) {
+        let isEq = true
+        for (let hd = s.first(), tl = s.next(), ptr = 0; isEq && tl && ptr < this.array.length; hd = tl.first(), tl = tl.next(), ptr++) {
+            isEq = hd === this.array[ptr];
+        }
+        return isEq;
+    }
+
+    [toSeq_method]() {
+        return this;
+    }
+
+    meta() {
+        return this._meta;
+    }
+
+    [withMeta_method](meta: any) {
+        return new ArraySeq(this.array, this.pointer, meta);
+    }
+}
+
+
+
+
+//
+// Extend native types
+//
+
+// interface Array<X> extends IConjable<X>, ISeqable<X> {};
+
+// Array.prototype.[conj_method] = 
+
+// Array.prototype[toSeq_method]
