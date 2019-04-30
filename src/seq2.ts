@@ -291,6 +291,14 @@ class Cons<X> extends ASeq<X> implements ISeq<X>, IMeta {
     return this.rest()[toSeq_method]();
   }
 
+    rest(): ISeq<X> {
+      if (this._rest === null) {
+          return new EmptyList();
+      }
+
+      return this._rest;
+  }
+
   cons(x: X): ISeq<X> {
     return new PersistentList(x, this, this.meta());
   }
@@ -441,25 +449,46 @@ class ArraySeq<X> extends ASeq<X> implements ISeq<X>, IMeta {
 // Iterate
 //
 
-class Iterate<X> extends ASeq<X>, IMeta {
-    private static UNREALIZED = Symbol("UNREALIZED_ITERATE_SEED");
-    private seed: X;
+const UNREALIZED_SEED = Symbol("UNREALIZED_ITERATE_SEED"); 
+
+class Iterate<X> extends ASeq<X> implements IMeta {
+    private seed: X | typeof UNREALIZED_SEED;
     private prevSeed: X;
+    private _next: ISeq<X>
     private fn: (x: X) => X;
-    constructor(fn: (x: X) => X, seed: X, prevSeed?: X, meta?: any) {
+    constructor(fn: (x: X) => X, seed: X | typeof UNREALIZED_SEED, prevSeed?: X, next?: ISeq<X>, meta?: any) {
         super(meta);
         this.fn = fn;
         this.seed = seed;
         this.prevSeed = prevSeed;
+        this._next = next;
     }
 
     first() {
-        if (this.seed = Iterate.UNREALIZED) {
-            this.seed = this.fn(thi)
+        if (this.seed === UNREALIZED_SEED) {
+            this.seed = this.fn(this.prevSeed)
         }
-        return this.seed;
+        return this.seed as X;
     }
-    
+
+    next() {
+        if (!this._next) {
+            this._next = new Iterate(this.fn, UNREALIZED_SEED, this.first())
+        }
+        return this._next;
+    }
+
+    [withMeta_method](meta: any) {
+        return new Iterate(this.fn, this.seed, this.prevSeed, this._next, meta);
+    }
+
+    count(): number {
+        throw new Error("Called count on an infinite sequence!");
+    }
+
+    isEmpty(): boolean {
+        return false
+    }
 
 }
 
@@ -559,8 +588,8 @@ function take<X>(n: number, coll: ISeqable<X>): LazySeq<X> {
     })
 }
 
-function iterate<X>(f: (x: X) => X, x: X): LazySeq<X> {
-    return new LazySeq(null, () => iterate(f, f(x)).cons(x))
+function iterate<X>(f: (x: X) => X, x: X): ISeq<X> {
+    return new Iterate(f, x, null);
 }
 
 // function range(begin: number, end?: number): LazySeq<number> {
@@ -587,13 +616,13 @@ console.log("emptyList", seq(new EmptyList()));
 
 
 const mapArrSeq = map(x => x + 1, arrSeq);
-console.log("map arrSeq", mapArrSeq);
-console.log("seq map arrSeq", seq(mapArrSeq));
+// console.log("map arrSeq", mapArrSeq);
+// console.log("seq map arrSeq", seq(mapArrSeq));
 console.log("into map arrSeq", into([], mapArrSeq));
 
 const filterArrSeq = filter(x =>  x % 2 === 0, [1, 2, 3, 4, 5]);
-console.log("filter arrSeq", filterArrSeq);
-console.log("seq filter arrSeq", seq(filterArrSeq));
+// console.log("filter arrSeq", filterArrSeq);
+// console.log("seq filter arrSeq", seq(filterArrSeq));
 console.log("into filter arrSeq", into([], filterArrSeq));
 
 
@@ -602,5 +631,6 @@ console.log("take arrSeq", into([], takeArrSeq))
 console.log("take map array", into([], take(3, map(x => x * 2, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]))))
 
 const naturals = iterate(x => x + 1, 0);
-console.log("naturals", naturals);
+// console.log("naturals", naturals);
 console.log("take naturals", into([], take(5, naturals)));
+console.log("take map naturals", into([], map(x => x * 2, take(5, naturals))))
