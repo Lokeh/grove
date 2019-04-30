@@ -149,7 +149,7 @@ abstract class ASeq<X> extends FluentCollection implements ISeq<X>, IMeta {
     rest(): ISeq<X> {
         let s = this.next();
         if (s) return s
-        return new EmptyList();
+        return emptyList();
     };
 
     abstract first(): X;
@@ -208,6 +208,12 @@ class EmptyList<X> implements IPersistentList<X> {
   }
 }
 
+const EMPTY_LIST = new EmptyList();
+
+function emptyList<X>(): ISeq<X> {
+    return EMPTY_LIST as EmptyList<X>;
+}
+
 class PersistentList<X> extends ASeq<X> implements IPersistentList<X>, IMeta {
   private _first: X;
   private _rest: IPersistentList<X>;
@@ -259,11 +265,6 @@ class PersistentList<X> extends ASeq<X> implements IPersistentList<X>, IMeta {
 
   isEmpty() {
     return false;
-  }
-
-  empty(): IPersistentList<X> {
-    // return EMPTY_LIST as IPersistentList<X>;
-    return new EmptyList() as IPersistentList<X>;
   }
 
   [toSeq_method]() {
@@ -518,6 +519,13 @@ Array.prototype[toSeq_method] = function() {
 // Library
 //
 
+function sequence<X>(coll: ISeqable<X>): ISeq<X> {
+    if (isSeq(coll)) {
+        return coll as ISeq<X>;
+    }
+    return seq(coll) || emptyList();
+}
+
 function first<X>(s: ISeqable<X>) {
   if (s) {
     return seq(s).first();
@@ -534,12 +542,25 @@ function rest<X>(s: ISeqable<X>) {
   return seq(s).rest();
 }
 
+function next<X>(s: ISeqable<X>) {
+    return seq(s).next();
+}
+
 function count<X>(s: ISeqable<X>) {
   return seq(s).count();
 }
 
 function empty<X>(s: ISeq<X>) {
   return s.empty();
+}
+
+function isEvery<X>(pred: (x :X) => boolean, coll: ISeqable<X>): boolean {
+    if (seq(coll) === null) {
+        return true;
+    }
+    if (pred(first(coll))) {
+        isEvery(pred, next(coll));
+    }
 }
 
 function reduce<X, Y>(f: (acc: Y, x: X) => Y, init: Y, s: ISeqable<X>): Y {
@@ -560,16 +581,20 @@ function into<X>(
   return reduce((acc, x) => conj(acc, x), coll, s);
 }
 
+function lazySeq<X>(f: () => ISeq<X> | null): LazySeq<X> {
+    return new LazySeq(null, f);
+}
+
 function map<X, Y>(f: (x: X) => Y, s: ISeqable<X>): ISeq<Y> {
   let xs = seq(s);
   if (xs === null) return null;
-  return new LazySeq(null, () => cons(f(xs.first()), map(f, xs.rest())));
+  return lazySeq(() => cons(f(xs.first()), map(f, xs.rest())));
 }
 
 function filter<X>(pred: (x: X) => boolean, s: ISeqable<X>): ISeq<X> {
   let xs = seq(s);
   if (xs === null) return null;
-  return new LazySeq(null, () => {
+  return lazySeq(() => {
     let hd = xs.first();
     let tl = xs.rest();
     if (pred(hd)) {
@@ -580,7 +605,7 @@ function filter<X>(pred: (x: X) => boolean, s: ISeqable<X>): ISeq<X> {
 }
 
 function take<X>(n: number, coll: ISeqable<X>): LazySeq<X> {
-    return new LazySeq(null, function takeFn () {
+    return lazySeq(() => {
         if (n > 0) {
             let s = isSeq(coll) ? coll as ISeq<X> : seq(coll);
             if (s) {
