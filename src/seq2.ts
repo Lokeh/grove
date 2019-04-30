@@ -27,8 +27,6 @@ interface ISeqable<X> {
 
 interface IPersistentCollection<X> extends ISeqable<X> {}
 
-// interface ISeq<X> extends ISeqable<X> {}
-
 const withMeta_method = Symbol("withMeta_method");
 
 interface IMeta {
@@ -40,6 +38,13 @@ interface IWithMeta {
 }
 
 interface IMeta extends IWithMeta {}
+
+//
+// Allow for fluent extensions later...
+//
+
+class FluentCollection {};
+
 
 //
 // Runtime
@@ -105,10 +110,11 @@ class SeqIterator<X> implements Iterable<X> {
 }
 
 
-abstract class ASeq<X> implements ISeq<X>, IMeta {
+abstract class ASeq<X> extends FluentCollection implements ISeq<X>, IMeta {
     private _meta: any;
 
     constructor(meta: any){
+        super();
         this._meta = meta;
     }
 
