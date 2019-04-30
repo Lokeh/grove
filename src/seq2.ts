@@ -43,8 +43,7 @@ interface IMeta extends IWithMeta {}
 // Allow for fluent extensions later...
 //
 
-class FluentCollection {};
-
+class FluentCollection {}
 
 //
 // Runtime
@@ -65,21 +64,6 @@ function isConjable<X>(o: any): o is IConjable<X> {
 function seq<X>(o: ISeqable<X> | null) {
   if (o) return o[toSeq_method]();
   return null;
-}
-
-function cons<X>(x: X, coll: ISeqable<X> | null): ISeq<X> {
-    let s = seq(coll);
-  if (s === null || s === undefined) {
-    return new PersistentList(x);
-  }
-  return s.cons(x);
-}
-
-function conj<X>(coll: IConjable<X> | IPersistentCollection<X>, x: X) {
-  if (isConjable(coll)) {
-    return coll[conj_method](x);
-  }
-  return cons(x, coll);
 }
 
 class SeqIterator<X> implements Iterable<X> {
@@ -109,53 +93,52 @@ class SeqIterator<X> implements Iterable<X> {
   }
 }
 
-
 abstract class ASeq<X> extends FluentCollection implements ISeq<X>, IMeta {
-    private _meta: any;
+  private _meta: any;
 
-    constructor(meta: any){
-        super();
-        this._meta = meta;
-    }
+  constructor(meta: any) {
+    super();
+    this._meta = meta;
+  }
 
-    meta() {
-        return this._meta;
-    }
+  meta() {
+    return this._meta;
+  }
 
-    abstract [withMeta_method](meta: any): ASeq<X>
+  abstract [withMeta_method](meta: any): ASeq<X>;
 
-    empty(): IPersistentCollection<X> {
-        return new EmptyList() as IPersistentCollection<X>;
-    }
+  empty(): IPersistentCollection<X> {
+    return new EmptyList() as IPersistentCollection<X>;
+  }
 
-    equiv(o: any) {
-        if (!isSeq(o) || !isSeqable(o)) return false;
-        const pl = seq(o) as ISeq<X>;
-        return this.first() === pl.first() && this.rest().equiv(pl.rest());
-    }
+  equiv(o: any) {
+    if (!isSeq(o) || !isSeqable(o)) return false;
+    const pl = seq(o) as ISeq<X>;
+    return this.first() === pl.first() && this.rest().equiv(pl.rest());
+  }
 
-    [toSeq_method](): ISeq<X> {
-        return this;
-    }
+  [toSeq_method](): ISeq<X> {
+    return this;
+  }
 
-    cons(x: X): ISeq<X> {
-        return new Cons(x, this);
-    }
+  cons(x: X): ISeq<X> {
+    return new Cons(x, this);
+  }
 
-    [Symbol.iterator](): SeqIterator<X> {
-        return new SeqIterator(this);
-    }
+  [Symbol.iterator](): SeqIterator<X> {
+    return new SeqIterator(this);
+  }
 
-    rest(): ISeq<X> {
-        let s = this.next();
-        if (s) return s
-        return emptyList();
-    };
+  rest(): ISeq<X> {
+    let s = this.next();
+    if (s) return s;
+    return emptyList();
+  }
 
-    abstract first(): X;
-    abstract next(): ISeq<X> | null;
-    abstract isEmpty(): boolean;
-    abstract count(): number;
+  abstract first(): X;
+  abstract next(): ISeq<X> | null;
+  abstract isEmpty(): boolean;
+  abstract count(): number;
 }
 
 //
@@ -199,8 +182,8 @@ class EmptyList<X> implements IPersistentList<X> {
   [withMeta_method](meta: any) {
     return new EmptyList(meta);
   }
-    [toSeq_method](): ISeq<X> {
-      // v important
+  [toSeq_method](): ISeq<X> {
+    // v important
     return null;
   }
   [Symbol.iterator](): SeqIterator<X> {
@@ -211,7 +194,7 @@ class EmptyList<X> implements IPersistentList<X> {
 const EMPTY_LIST = new EmptyList();
 
 function emptyList<X>(): ISeq<X> {
-    return EMPTY_LIST as EmptyList<X>;
+  return EMPTY_LIST as EmptyList<X>;
 }
 
 class PersistentList<X> extends ASeq<X> implements IPersistentList<X>, IMeta {
@@ -220,7 +203,7 @@ class PersistentList<X> extends ASeq<X> implements IPersistentList<X>, IMeta {
   private _count: number;
 
   constructor(first: X, rest?: IPersistentList<X>, count?: number, meta?: any) {
-      super(meta);
+    super(meta);
     this._first = first;
     if (rest && count) {
       this._rest = rest;
@@ -285,7 +268,7 @@ class Cons<X> extends ASeq<X> implements ISeq<X>, IMeta {
   private _rest: ISeq<X>;
 
   constructor(first: X, rest: ISeq<X>, meta?: any) {
-      super(meta);
+    super(meta);
     this._first = first;
     this._rest = rest;
   }
@@ -298,12 +281,12 @@ class Cons<X> extends ASeq<X> implements ISeq<X>, IMeta {
     return this.rest()[toSeq_method]();
   }
 
-    rest(): ISeq<X> {
-      if (this._rest === null) {
-          return new EmptyList();
-      }
+  rest(): ISeq<X> {
+    if (this._rest === null) {
+      return new EmptyList();
+    }
 
-      return this._rest;
+    return this._rest;
   }
 
   cons(x: X): ISeq<X> {
@@ -334,7 +317,7 @@ class LazySeq<X> extends ASeq<X> implements ISeq<X>, IMeta {
   private sv: any;
 
   constructor(s?: ISeq<X>, fn?: () => ISeq<X>, meta?: any) {
-      super(meta);
+    super(meta);
     if (s) {
       this.s = s;
     } else if (fn) {
@@ -355,7 +338,7 @@ class LazySeq<X> extends ASeq<X> implements ISeq<X>, IMeta {
     return this.s;
   }
 
-    [toSeq_method](): ISeq<X> {
+  [toSeq_method](): ISeq<X> {
     // review this
     this.sval();
     if (this.sv !== null) {
@@ -363,7 +346,7 @@ class LazySeq<X> extends ASeq<X> implements ISeq<X>, IMeta {
       this.sv = null;
       while (ls instanceof LazySeq) {
         ls = ls.sval();
-     }
+      }
       this.s = seq(ls);
     }
     return this.s;
@@ -410,7 +393,7 @@ class ArraySeq<X> extends ASeq<X> implements ISeq<X>, IMeta {
   private array: Array<X>;
   private pointer: number;
   constructor(array: Array<X>, pointer: number, meta?: any) {
-      super(meta);
+    super(meta);
     this.array = array;
     this.pointer = pointer;
   }
@@ -423,7 +406,7 @@ class ArraySeq<X> extends ASeq<X> implements ISeq<X>, IMeta {
     if (this.isEmpty()) {
       return null;
     }
-      return new ArraySeq(this.array, this.pointer + 1, this.meta());
+    return new ArraySeq(this.array, this.pointer + 1, this.meta());
   }
 
   isEmpty() {
@@ -451,54 +434,57 @@ class ArraySeq<X> extends ASeq<X> implements ISeq<X>, IMeta {
   }
 }
 
-
 //
 // Iterate
 //
 
-const UNREALIZED_SEED = Symbol("UNREALIZED_ITERATE_SEED"); 
+const UNREALIZED_SEED = Symbol("UNREALIZED_ITERATE_SEED");
 
 class Iterate<X> extends ASeq<X> implements IMeta {
-    private seed: X | typeof UNREALIZED_SEED;
-    private prevSeed: X;
-    private _next: ISeq<X>
-    private fn: (x: X) => X;
-    constructor(fn: (x: X) => X, seed: X | typeof UNREALIZED_SEED, prevSeed?: X, next?: ISeq<X>, meta?: any) {
-        super(meta);
-        this.fn = fn;
-        this.seed = seed;
-        this.prevSeed = prevSeed;
-        this._next = next;
-    }
+  private seed: X | typeof UNREALIZED_SEED;
+  private prevSeed: X;
+  private _next: ISeq<X>;
+  private fn: (x: X) => X;
+  constructor(
+    fn: (x: X) => X,
+    seed: X | typeof UNREALIZED_SEED,
+    prevSeed?: X,
+    next?: ISeq<X>,
+    meta?: any
+  ) {
+    super(meta);
+    this.fn = fn;
+    this.seed = seed;
+    this.prevSeed = prevSeed;
+    this._next = next;
+  }
 
-    first() {
-        if (this.seed === UNREALIZED_SEED) {
-            this.seed = this.fn(this.prevSeed)
-        }
-        return this.seed as X;
+  first() {
+    if (this.seed === UNREALIZED_SEED) {
+      this.seed = this.fn(this.prevSeed);
     }
+    return this.seed as X;
+  }
 
-    next() {
-        if (!this._next) {
-            this._next = new Iterate(this.fn, UNREALIZED_SEED, this.first())
-        }
-        return this._next;
+  next() {
+    if (!this._next) {
+      this._next = new Iterate(this.fn, UNREALIZED_SEED, this.first());
     }
+    return this._next;
+  }
 
-    [withMeta_method](meta: any) {
-        return new Iterate(this.fn, this.seed, this.prevSeed, this._next, meta);
-    }
+  [withMeta_method](meta: any) {
+    return new Iterate(this.fn, this.seed, this.prevSeed, this._next, meta);
+  }
 
-    count(): number {
-        throw new Error("Called count on an infinite sequence!");
-    }
+  count(): number {
+    throw new Error("Called count on an infinite sequence!");
+  }
 
-    isEmpty(): boolean {
-        return false
-    }
-
+  isEmpty(): boolean {
+    return false;
+  }
 }
-
 
 //
 // Extend native types
@@ -514,159 +500,3 @@ Array.prototype[conj_method] = function<X>(x: X) {
 Array.prototype[toSeq_method] = function() {
   return new ArraySeq(this, 0);
 };
-
-//
-// Library
-//
-
-function sequence<X>(coll: ISeqable<X>): ISeq<X> {
-    if (isSeq(coll)) {
-        return coll as ISeq<X>;
-    }
-    return seq(coll) || emptyList();
-}
-
-function first<X>(s: ISeqable<X>) {
-  if (s) {
-    return seq(s).first();
-  }
-  return null;
-}
-
-function ffirst<X>(s: ISeqable<ISeqable<X>>) {
-  // trust me it's not empty
-  return first(first(s) as ISeqable<X>);
-}
-
-function rest<X>(s: ISeqable<X>) {
-  return seq(s).rest();
-}
-
-function next<X>(s: ISeqable<X>) {
-    return seq(s).next();
-}
-
-function count<X>(s: ISeqable<X>) {
-  return seq(s).count();
-}
-
-function empty<X>(s: ISeq<X>) {
-  return s.empty();
-}
-
-function isEvery<X>(pred: (x :X) => boolean, coll: ISeqable<X>): boolean {
-    if (seq(coll) === null) {
-        return true;
-    }
-    if (pred(first(coll))) {
-        isEvery(pred, next(coll));
-    }
-}
-
-function reduce<X, Y>(f: (acc: Y, x: X) => Y, init: Y, s: ISeqable<X>): Y {
-  let acc = init;
-
-  for (let xs = seq(s), hd = xs.first(); xs !== null; xs = xs.next()) {
-    hd = xs.first();
-    acc = f(acc, hd);
-  }
-
-  return acc;
-}
-
-function into<X>(
-  coll: IConjable<X> | ISeq<X>,
-  s: ISeq<X>
-): IConjable<X> | ISeq<X> {
-  return reduce((acc, x) => conj(acc, x), coll, s);
-}
-
-function lazySeq<X>(f: () => ISeq<X> | null): LazySeq<X> {
-    return new LazySeq(null, f);
-}
-
-function map<X, Y>(f: (x: X) => Y, s: ISeqable<X>): ISeq<Y> {
-  let xs = seq(s);
-  if (xs === null) return null;
-  return lazySeq(() => cons(f(xs.first()), map(f, xs.rest())));
-}
-
-function filter<X>(pred: (x: X) => boolean, s: ISeqable<X>): ISeq<X> {
-  let xs = seq(s);
-  if (xs === null) return null;
-  return lazySeq(() => {
-    let hd = xs.first();
-    let tl = xs.rest();
-    if (pred(hd)) {
-      return cons(hd, filter(pred, tl));
-    }
-    return filter(pred, tl);
-  });
-}
-
-function take<X>(n: number, coll: ISeqable<X>): LazySeq<X> {
-    return lazySeq(() => {
-        if (n > 0) {
-            let s = isSeq(coll) ? coll as ISeq<X> : seq(coll);
-            if (s) {
-                let hd = s.first();
-                let tl =  s.rest();
-                let ret = new Cons(hd, take(n - 1, tl));
-                return ret;
-            }
-            return null
-        }
-    })
-}
-
-function iterate<X>(f: (x: X) => X, x: X): ISeq<X> {
-    return new Iterate(f, x, null);
-}
-
-// function range(begin: number, end?: number): LazySeq<number> {
-    
-// }
-
-//
-// Try it out
-//
-
-const arrSeq = seq([1, 2, 3, 4, 5]);
-console.log("arrSeq", arrSeq, count(arrSeq));
-console.log("first array", first([1, 2, 3]));
-console.log("first arrSeq", first(arrSeq));
-console.log("rest array", rest([1, 2, 3]), count(rest([1, 2, 3])));
-console.log("rest arrSeq", rest(arrSeq), count(rest(arrSeq)));
-console.log("first rest arrSeq", first(rest(arrSeq)));
-console.log("reduce rest arrSeq", reduce((x, y) => x + y, 0, rest(arrSeq)));
-console.log("into rest arrSeq", into([], rest(arrSeq)));
-
-console.log("emptyList", new EmptyList());
-
-console.log("emptyList", seq(new EmptyList()));
-
-
-const mapArrSeq = map(x => x + 1, arrSeq);
-// console.log("map arrSeq", mapArrSeq);
-// console.log("seq map arrSeq", seq(mapArrSeq));
-console.log("into map arrSeq", into([], mapArrSeq));
-
-const filterArrSeq = filter(x =>  x % 2 === 0, [1, 2, 3, 4, 5]);
-// console.log("filter arrSeq", filterArrSeq);
-// console.log("seq filter arrSeq", seq(filterArrSeq));
-console.log("into filter arrSeq", into([], filterArrSeq));
-
-
-const takeArrSeq = take(3, [1, 2, 3, 4, 5, 6, 7]);
-console.log("take arrSeq", into([], takeArrSeq))
-console.log("take map array", into([], take(3, map(x => x * 2, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]))))
-
-const naturals = iterate(x => x + 1, 0);
-// console.log("naturals", naturals);
-console.log("take naturals", into([], take(5, naturals)));
-console.log("take map naturals", into([], map(x => x * 2, take(5, naturals))))
-
-console.log("iterator")
-for (let n of map(x => x * 2, take(10, naturals))) {
-    console.log(n);
-}
