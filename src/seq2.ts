@@ -89,7 +89,7 @@ class SeqIterator<X> implements Iterable<X> {
   }
 
   next() {
-    if ((this.s = null)) {
+    if (this.s === null) {
       return {
         done: true,
         value: null
@@ -640,3 +640,8 @@ const naturals = iterate(x => x + 1, 0);
 // console.log("naturals", naturals);
 console.log("take naturals", into([], take(5, naturals)));
 console.log("take map naturals", into([], map(x => x * 2, take(5, naturals))))
+
+console.log("iterator")
+for (let n of map(x => x * 2, take(10, naturals))) {
+    console.log(n);
+}
