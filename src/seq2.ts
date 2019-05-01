@@ -1,19 +1,19 @@
-const conj_method = Symbol("conj_method");
+export const conj_method = Symbol("conj_method");
 
-const toSeq_method = Symbol("toSeq_method");
+export const toSeq_method = Symbol("toSeq_method");
 
-interface IConjable<X> {
+export interface IConjable<X> {
   [conj_method](x: X): IConjable<X>;
 }
 
-interface IPersistentCollection<X> extends Iterable<X> {
+export interface IPersistentCollection<X> extends Iterable<X> {
   cons(x: X): IPersistentCollection<X>;
   empty(): IPersistentCollection<X>;
   count(): number;
   equiv(p: IPersistentCollection<X>): boolean;
 }
 
-interface ISeq<X> extends IPersistentCollection<X> {
+export interface ISeq<X> extends IPersistentCollection<X> {
   first(): X;
   rest(): ISeq<X>;
   next(): ISeq<X> | null;
@@ -21,52 +21,52 @@ interface ISeq<X> extends IPersistentCollection<X> {
   isEmpty(): boolean;
 }
 
-interface ISeqable<X> {
+export interface ISeqable<X> {
   [toSeq_method](): ISeq<X>;
 }
 
-interface IPersistentCollection<X> extends ISeqable<X> {}
+export interface IPersistentCollection<X> extends ISeqable<X> {}
 
-const withMeta_method = Symbol("withMeta_method");
+export const withMeta_method = Symbol("withMeta_method");
 
-interface IMeta {
+export interface IMeta {
   meta(): any;
 }
 
-interface IWithMeta {
+export interface IWithMeta {
   [withMeta_method](meta: any): IMeta;
 }
 
-interface IMeta extends IWithMeta {}
+export interface IMeta extends IWithMeta {}
 
 //
 // Allow for fluent extensions later...
 //
 
-class FluentCollection {}
+export class FluentCollection {}
 
 //
 // Runtime
 //
 
-function isSeqable<X>(o: any): o is ISeqable<X> {
+export function isSeqable<X>(o: any): o is ISeqable<X> {
   return o && o[toSeq_method];
 }
 
-function isSeq<X>(o: any): o is ISeq<X> {
+export function isSeq<X>(o: any): o is ISeq<X> {
   return o && o.first && o.rest && o.cons && o.isEmpty;
 }
 
-function isConjable<X>(o: any): o is IConjable<X> {
+export function isConjable<X>(o: any): o is IConjable<X> {
   return o && o[conj_method];
 }
 
-function seq<X>(o: ISeqable<X> | null) {
+export function seq<X>(o: ISeqable<X> | null) {
   if (o) return o[toSeq_method]();
   return null;
 }
 
-class SeqIterator<X> implements Iterable<X> {
+export class SeqIterator<X> implements Iterable<X> {
   private s: ISeq<X>;
   constructor(s: ISeq<X>) {
     this.s = s;
@@ -93,7 +93,8 @@ class SeqIterator<X> implements Iterable<X> {
   }
 }
 
-abstract class ASeq<X> extends FluentCollection implements ISeq<X>, IMeta {
+export abstract class ASeq<X> extends FluentCollection
+  implements ISeq<X>, IMeta {
   private _meta: any;
 
   constructor(meta: any) {
@@ -147,7 +148,7 @@ abstract class ASeq<X> extends FluentCollection implements ISeq<X>, IMeta {
 
 interface IPersistentList<X> extends ISeq<X>, IMeta {}
 
-class EmptyList<X> implements IPersistentList<X> {
+export class EmptyList<X> implements IPersistentList<X> {
   private _meta: any;
   constructor(meta?: any) {
     if (meta) this._meta = meta;
@@ -193,11 +194,12 @@ class EmptyList<X> implements IPersistentList<X> {
 
 const EMPTY_LIST = new EmptyList();
 
-function emptyList<X>(): ISeq<X> {
+export function emptyList<X>(): ISeq<X> {
   return EMPTY_LIST as EmptyList<X>;
 }
 
-class PersistentList<X> extends ASeq<X> implements IPersistentList<X>, IMeta {
+export class PersistentList<X> extends ASeq<X>
+  implements IPersistentList<X>, IMeta {
   private _first: X;
   private _rest: IPersistentList<X>;
   private _count: number;
@@ -263,7 +265,7 @@ class PersistentList<X> extends ASeq<X> implements IPersistentList<X>, IMeta {
 // Cons
 //
 
-class Cons<X> extends ASeq<X> implements ISeq<X>, IMeta {
+export class Cons<X> extends ASeq<X> implements ISeq<X>, IMeta {
   private _first: X;
   private _rest: ISeq<X>;
 
@@ -311,7 +313,7 @@ class Cons<X> extends ASeq<X> implements ISeq<X>, IMeta {
 // LazySeq
 //
 
-class LazySeq<X> extends ASeq<X> implements ISeq<X>, IMeta {
+export class LazySeq<X> extends ASeq<X> implements ISeq<X>, IMeta {
   private fn?: () => ISeq<X>;
   private s?: ISeq<X>;
   private sv: any;
@@ -389,7 +391,7 @@ class LazySeq<X> extends ASeq<X> implements ISeq<X>, IMeta {
 // ArraySeq
 //
 
-class ArraySeq<X> extends ASeq<X> implements ISeq<X>, IMeta {
+export class ArraySeq<X> extends ASeq<X> implements ISeq<X>, IMeta {
   private array: Array<X>;
   private pointer: number;
   constructor(array: Array<X>, pointer: number, meta?: any) {
@@ -440,7 +442,7 @@ class ArraySeq<X> extends ASeq<X> implements ISeq<X>, IMeta {
 
 const UNREALIZED_SEED = Symbol("UNREALIZED_ITERATE_SEED");
 
-class Iterate<X> extends ASeq<X> implements IMeta {
+export class Iterate<X> extends ASeq<X> implements IMeta {
   private seed: X | typeof UNREALIZED_SEED;
   private prevSeed: X;
   private _next: ISeq<X>;
@@ -486,11 +488,10 @@ class Iterate<X> extends ASeq<X> implements IMeta {
   }
 }
 
-//
-// Extend native types
-//
-
-interface Array<T> extends IConjable<T>, ISeqable<T> {}
+declare global {
+    type IIndexableThingy = { [index: string]: any};
+    export interface Array<T> extends IConjable<T>, ISeqable<T>, IIndexableThingy {}
+}
 
 Array.prototype[conj_method] = function<X>(x: X) {
   this.push(x);
